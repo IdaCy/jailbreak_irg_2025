@@ -37,7 +37,7 @@ def run_inf(model,
     Runs inference on provided data and saves results batchwise.
     """
     if logger is None:
-        logger = logging.getLogger("polAIlogger")
+        logger = logging.getLogger("jb_logger")
 
     if extract_hidden_layers is None:
         extract_hidden_layers = [0, 5, 10, 15]
@@ -144,7 +144,7 @@ if __name__ == "__main__":
 
     # Setup a basic logger if needed
     logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger("polAIlogger")
+    logger = logging.getLogger("jb_logger")
     
     # For demonstration, create some dummy data: a list of (index, text) pairs.
     dummy_data = [(i, f"Sample text {i}") for i in range(10)]
