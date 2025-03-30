@@ -3,12 +3,14 @@
 Evaluation of Cosine Similarity Results Across Multiple Jailbreak Extractions
 
 This script loads all cosine similarity CSV result files from a given directory,
-aggregates them (adding a 'jailbreak_type' column inferred from each filename),
+aggregates them (adding a 'jailbreak_type' column inferred from the filename),
 computes summary statistics (mean, median, std, count) grouped by jailbreak type and layer,
 and produces several graphs:
   - Bar plots of average cosine similarity (with error bars) per layer for each jailbreak type.
   - Histograms of the cosine similarity distributions per jailbreak type.
   - A box plot of cosine similarity values across layers (all types combined).
+  - A concise table comparing differences between jailbreak types per layer.
+  - A heatmap and a line plot comparing mean cosine similarity across layers and jailbreak types.
 
 Usage (command line):
     python evaluate_cosine_similarity.py --input_dir path/to/csv_results \
@@ -28,6 +30,7 @@ import argparse
 import logging
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 from collections import defaultdict
 
 def load_all_results(input_dir, logger):
@@ -73,6 +76,23 @@ def compute_summary_statistics(df, logger):
     ).reset_index()
     return summary
 
+def compute_jailbreak_comparisons(summary, logger):
+    """
+    Computes additional comparative statistics between jailbreak types for each layer.
+    For each layer, this function calculates the range (max-min) and standard deviation
+    of the mean cosine similarity across jailbreak types.
+    
+    Returns a concise DataFrame summarizing these differences.
+    """
+    logger.info("Computing inter-jailbreak comparisons...")
+    comp_stats = summary.groupby("layer").agg(
+        max_mean=("mean_cos_sim", "max"),
+        min_mean=("mean_cos_sim", "min"),
+        std_across_types=("mean_cos_sim", "std")
+    ).reset_index()
+    comp_stats["range"] = comp_stats["max_mean"] - comp_stats["min_mean"]
+    return comp_stats
+
 def plot_summary_statistics(summary, output_dir, logger):
     """
     Produces bar plots (with error bars) of mean cosine similarity per layer for each jailbreak type.
@@ -114,7 +134,6 @@ def plot_boxplot_all_layers(df, output_dir, logger):
     """
     Produces a box plot for cosine similarity values per layer (aggregated across jailbreak types).
     """
-    # Group values by layer.
     layers = sorted(df["layer"].unique())
     data_by_layer = []
     for layer in layers:
@@ -132,12 +151,52 @@ def plot_boxplot_all_layers(df, output_dir, logger):
     plt.close()
     logger.info(f"Saved box plot: {out_path}")
 
-def run_evaluation(input_dir, output_dir, summary_csv, log_level="INFO"):
+def plot_heatmap(summary, output_dir, logger):
+    """
+    Produces a heatmap of mean cosine similarity with layers on one axis and jailbreak types on the other.
+    """
+    pivot = summary.pivot(index="jailbreak_type", columns="layer", values="mean_cos_sim")
+    plt.figure(figsize=(10, 6))
+    plt.imshow(pivot, aspect="auto", cmap="viridis")
+    plt.colorbar(label="Mean Cosine Similarity")
+    plt.xticks(ticks=range(len(pivot.columns)), labels=pivot.columns)
+    plt.yticks(ticks=range(len(pivot.index)), labels=pivot.index)
+    plt.title("Heatmap of Mean Cosine Similarity")
+    plt.xlabel("Layer")
+    plt.ylabel("Jailbreak Type")
+    plt.tight_layout()
+    out_path = os.path.join(output_dir, "heatmap_mean_cosine.png")
+    plt.savefig(out_path)
+    plt.close()
+    logger.info(f"Saved heatmap: {out_path}")
+
+def plot_line_comparison(summary, output_dir, logger):
+    """
+    Produces a line plot comparing mean cosine similarity across layers for each jailbreak type.
+    """
+    plt.figure(figsize=(10, 6))
+    jailbreak_types = summary["jailbreak_type"].unique()
+    for jb_type in jailbreak_types:
+        df_jb = summary[summary["jailbreak_type"] == jb_type]
+        # Ensure layers are ordered properly, assuming layer names like "layer_0", "layer_5", etc.
+        df_jb = df_jb.sort_values(by="layer")
+        plt.plot(df_jb["layer"], df_jb["mean_cos_sim"], marker="o", label=jb_type)
+    plt.title("Mean Cosine Similarity Across Layers")
+    plt.xlabel("Layer")
+    plt.ylabel("Mean Cosine Similarity")
+    plt.legend()
+    plt.tight_layout()
+    out_path = os.path.join(output_dir, "lineplot_mean_cosine_comparison.png")
+    plt.savefig(out_path)
+    plt.close()
+    logger.info(f"Saved line plot: {out_path}")
+
+def run_evaluation(input_dir, output_dir, summary_csv, comparison_csv="jailbreak_comparison.csv", log_level="INFO"):
     """
     Main evaluation function:
       - Loads all CSV result files from input_dir.
       - Aggregates the data and computes summary statistics.
-      - Saves the summary CSV and produces several plots.
+      - Saves the summary CSV, the inter-jailbreak comparison CSV, and produces several plots.
     """
     logger = logging.getLogger("CosineEval")
     logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))
@@ -161,12 +220,23 @@ def run_evaluation(input_dir, output_dir, summary_csv, log_level="INFO"):
     summary.to_csv(summary_csv, index=False)
     logger.info(f"Saved aggregated summary CSV to: {summary_csv}")
 
+    # Compute additional inter-jailbreak comparisons
+    comp_stats = compute_jailbreak_comparisons(summary, logger)
+    comp_csv_path = os.path.join(output_dir, comparison_csv)
+    comp_stats.to_csv(comp_csv_path, index=False)
+    logger.info(f"Saved inter-jailbreak comparison CSV to: {comp_csv_path}")
+
+    # Generate plots
     logger.info("Plotting bar charts of summary statistics...")
     plot_summary_statistics(summary, output_dir, logger)
     logger.info("Plotting histograms...")
     plot_histograms(df, output_dir, logger)
     logger.info("Plotting box plot (all layers)...")
     plot_boxplot_all_layers(df, output_dir, logger)
+    logger.info("Plotting heatmap...")
+    plot_heatmap(summary, output_dir, logger)
+    logger.info("Plotting line comparison across jailbreak types...")
+    plot_line_comparison(summary, output_dir, logger)
 
     logger.info("Evaluation complete.")
 
