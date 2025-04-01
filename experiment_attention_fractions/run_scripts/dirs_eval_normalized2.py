@@ -141,14 +141,6 @@ def compute_attention_on_bit(extraction, tokenizer, bit_texts, layers, logger):
         r["source_file"] = extraction.get("source_file", "unknown")
     return results
 
-import os
-import logging
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from glob import glob
-from collections import defaultdict
-
 def run_attention_extraction_normalized(tokenizer,
                              extraction_base_dir,
                              prompt_types,
