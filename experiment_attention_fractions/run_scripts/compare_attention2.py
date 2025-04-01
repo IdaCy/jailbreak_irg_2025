@@ -58,16 +58,17 @@ except ImportError:
 # -----------------------------
 def load_extraction_files(pt_dir, logger):
     """
-    Loads all .pt files from the specified directory.
+    Loads all .pt files from the specified directory and its subdirectories.
     """
-    file_paths = sorted(glob.glob(os.path.join(pt_dir, "*.pt")))
-    logger.info(f"Found {len(file_paths)} PT extraction files in {pt_dir}")
+    file_paths = sorted(glob.glob(os.path.join(pt_dir, "**", "*.pt"), recursive=True))
+    logger.info(f"Found {len(file_paths)} PT extraction files under {pt_dir}")
     extractions = []
     for fp in file_paths:
         try:
             data = __import__("torch").load(fp, map_location="cpu")
-            # Also record the source file name for later inference of prompt type.
+            # Record both file name and relative folder (prompt type)
             data["source_file"] = os.path.basename(fp)
+            data["source_path"] = fp  # full path for later use
             extractions.append(data)
         except Exception as e:
             logger.exception(f"Error loading {fp}: {e}")

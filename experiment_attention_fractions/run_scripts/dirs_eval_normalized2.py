@@ -149,10 +149,7 @@ import matplotlib.pyplot as plt
 from glob import glob
 from collections import defaultdict
 
-# Assumes compute_attention_on_bit and load_json_file are already defined/imported from your original script
-from experiment_attention_fractions.run_scripts.compare_attention2 import compute_attention_on_bit, load_json_file, load_extraction_files
-
-def run_attention_extraction(tokenizer,
+def run_attention_extraction_normalized(tokenizer,
                              extraction_base_dir,
                              prompt_types,
                              harmful_json,
