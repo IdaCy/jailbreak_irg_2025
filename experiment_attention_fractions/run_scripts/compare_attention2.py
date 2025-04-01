@@ -158,9 +158,9 @@ def compute_attention_on_bit(extraction, tokenizer, bit_texts, layers, logger):
 # -----------------------------
 # Main evaluation functions
 # -----------------------------
-def run_attention_evaluation(pt_dir, harmful_json, actionable_json, output_dir,
-                             harmful_csv, actionable_csv, model_name=None,
-                             layers=None, log_level="INFO"):
+def run_attention_evaluation(pt_dir, harmful_json, actionable_json,
+                             output_dir, harmful_csv, actionable_csv,
+                             layers=None, log_level="INFO", tokenizer=None):
     """
     Main function that:
       - Loads PT extraction files.
@@ -249,16 +249,22 @@ def run_attention_evaluation(pt_dir, harmful_json, actionable_json, output_dir,
         actionable_texts = actionable_prompts.get(prompt_type, [""] * extraction["input_ids"].shape[0])
         
         # Compute attention fractions for harmful bits.
-        harm_res = compute_attention_on_bit(extraction, tokenizer=AutoTokenizer.from_pretrained(model_name) if model_name and AutoTokenizer else None,
-                                              bit_texts=harmful_texts, layers=layers, logger=logger)
+        """harm_res = compute_attention_on_bit(extraction, tokenizer=AutoTokenizer.from_pretrained(model_name) if model_name and AutoTokenizer else None,
+                                              bit_texts=harmful_texts, layers=layers, logger=logger)"""
+        harm_res = compute_attention_on_bit(extraction, tokenizer=tokenizer,
+                                    bit_texts=harmful_texts, layers=layers, logger=logger)
+
         # Tag each result with the prompt_type.
         for r in harm_res:
             r["prompt_type"] = prompt_type
         harmful_results.extend(harm_res)
         
         # Compute attention fractions for actionable bits.
-        act_res = compute_attention_on_bit(extraction, tokenizer=AutoTokenizer.from_pretrained(model_name) if model_name and AutoTokenizer else None,
-                                             bit_texts=actionable_texts, layers=layers, logger=logger)
+        """act_res = compute_attention_on_bit(extraction, tokenizer=AutoTokenizer.from_pretrained(model_name) if model_name and AutoTokenizer else None,
+                                             bit_texts=actionable_texts, layers=layers, logger=logger)"""
+        act_res = compute_attention_on_bit(extraction, tokenizer=tokenizer,
+                                   bit_texts=actionable_texts, layers=layers, logger=logger)
+
         for r in act_res:
             r["prompt_type"] = prompt_type
         actionable_results.extend(act_res)
