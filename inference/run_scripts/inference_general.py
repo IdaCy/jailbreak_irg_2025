@@ -6,7 +6,7 @@ import logging
 import torch
 import argparse
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from utils.run_scripts.load_model import load_model
+from b_utils.run_scripts.load_model import load_model
 
 # Default parameters
 DEFAULT_OUTPUT_DIR = "output/"
@@ -37,7 +37,7 @@ def run_inf(model,
     Runs inference on provided data and saves results batchwise.
     """
     if logger is None:
-        logger = logging.getLogger("jb_logger")
+        logger = logging.getLogger("polAIlogger")
 
     if extract_hidden_layers is None:
         extract_hidden_layers = [0, 5, 10, 15]
@@ -61,7 +61,15 @@ def run_inf(model,
         end_i = min((batch_idx + 1) * batch_size, total_samples)
         batch_items = data[start_i:end_i]
         batch_indices = [x[0] for x in batch_items]
-        batch_texts = [x[1] for x in batch_items]
+        batch_texts = [
+            tokenizer.apply_chat_template(
+                [{"role": "user", "content": x[1]}],
+                tokenize=False,
+                add_generation_prompt=True
+            )
+            for x in batch_items
+        ]
+
 
         if batch_idx % 20 == 0:
             logger.info(f"Processing batch {batch_idx+1}/{total_batches} (samples {start_i}-{end_i-1})")
@@ -144,7 +152,7 @@ if __name__ == "__main__":
 
     # Setup a basic logger if needed
     logging.basicConfig(level=logging.INFO)
-    logger = logging.getLogger("jb_logger")
+    logger = logging.getLogger("polAIlogger")
     
     # For demonstration, create some dummy data: a list of (index, text) pairs.
     dummy_data = [(i, f"Sample text {i}") for i in range(10)]
