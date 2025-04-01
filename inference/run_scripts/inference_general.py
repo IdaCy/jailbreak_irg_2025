@@ -61,15 +61,7 @@ def run_inf(model,
         end_i = min((batch_idx + 1) * batch_size, total_samples)
         batch_items = data[start_i:end_i]
         batch_indices = [x[0] for x in batch_items]
-        batch_texts = [
-            tokenizer.apply_chat_template(
-                [{"role": "user", "content": x[1]}],
-                tokenize=False,
-                add_generation_prompt=True
-            )
-            for x in batch_items
-        ]
-
+        batch_texts = [x[1] for x in batch_items]
 
         if batch_idx % 20 == 0:
             logger.info(f"Processing batch {batch_idx+1}/{total_batches} (samples {start_i}-{end_i-1})")
