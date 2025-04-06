@@ -2,3 +2,6 @@ data/codechameleon/all_problem.csv
 .DS_Store
 __pycache__
 logs/
+*/renellm_output*
+zz-archive
+bfg.jar
